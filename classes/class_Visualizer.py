@@ -417,6 +417,7 @@ class DiscoWindow(QWidget):
         self.kaleido = False  # Флаг режима калейдоскопа (4-кратное симметричное отражение)
         self.auto_pilot = False  # Флаг автоматической смены режимов
         self.last_mode_change = time.time()  # Таймер последней смены мода
+
         # Снежинки: [x (0-1), y (0-1), частотная полоса (0-2), скорость падения]
         self.snow_flakes = [
             [random.random(), random.random(), random.randint(0, 2),
@@ -480,6 +481,7 @@ class DiscoWindow(QWidget):
             # Автопилот: смена режима по биту
             if self.auto_pilot and (time.time() - self.last_mode_change > AUTOPILOT_BEAT_INTERVAL):
                 self.next_mode()
+
         else:  # Если баса нет
             # Затухание вспышки
             decay = EXPLOSION_DECAY_RELAX if self.is_relax else EXPLOSION_DECAY_RAVE
@@ -533,26 +535,31 @@ class DiscoWindow(QWidget):
         """
         menu = QMenu(self)  # Создаем объект меню
         menu.setStyleSheet("QMenu { background: #1a1a1a; color: white; border: 1px solid #444; }")  # Дизайн
+
         cb = QComboBox()  # Создаем выпадающий список
         cb.addItems(self.modes)  # Добавляем моды
         cb.setCurrentText(self.cur_mode)  # Ставим текущий мод
         cb.currentTextChanged.connect(lambda t:
             setattr(self, 'cur_mode', t))  # Связь выбора
+
         wa = QWidgetAction(menu)  # Обертка виджета для меню
         c = QWidget()
         l = QVBoxLayout(c)
         l.addWidget(QLabel("СТИЛЬ:"))
         l.addWidget(cb)  # Слой меню
         wa.setDefaultWidget(c)
+
         menu.addAction(wa)
         menu.addSeparator()  # Добавляем в меню
         menu.addAction("🤖 Автопилот: " + ("ВКЛ" if self.auto_pilot else "ВЫКЛ"), lambda: setattr(self, 'auto_pilot', not self.auto_pilot))  # Переключатель автопилота
         menu.addAction("🌙 Режим: РЕЛАКС" if self.is_relax else "🔥 Режим: РЕЙВ", lambda: setattr(self, 'is_relax', not self.is_relax))  # Переключатель рейва
         menu.addAction("💠 Калейдоскоп: " + ("ВКЛ" if self.kaleido else "ВЫКЛ"), lambda: setattr(self, 'kaleido', not self.kaleido))  # Калейдоскоп
+
         sl = QSlider(Qt.Horizontal)
         sl.setRange(10, 150)  # Диапазон чувствительности (10-150)
         sl.setValue(self.thread.sensitivity)
         sl.valueChanged.connect(self.thread.set_sensitivity)  # Слайдер яркости
+
         wa2 = QWidgetAction(menu)
         c2 = QWidget()
         l2 = QVBoxLayout(c2)
@@ -604,12 +611,15 @@ class DiscoWindow(QWidget):
 
         def draw_scene(painter):  # Функция отрисовки сцены
             painter.setCompositionMode(QPainter.CompositionMode_Plus)  # Режим свечения цветов
+
             if self.cur_mode == "1. Облака":  # Отрисовка Облаков
                 orb = (min(w,h)/8.5 + (min(w,h)/3.2 - min(w,h)/8.5)*(0.5+0.5*math.sin(self.orbit_phase))) + (min(w,h)/2.5)*self.explosion  # Радиус орбиты
                 angs = [self.angle, self.angle + 2.09, self.angle + 4.18]  # Углы разлета трех точек
+
                 for i in range(3):  # Цикл по трем цветам
                     if self.colors[i] < SILENCE_THRESHOLD:
                         continue  # Пропуск тишины
+
                     pos = QPointF(cx + orb*math.cos(angs[i]), cy + orb*math.sin(angs[i]))  # Позиция круга
                     rad = (max(w,h)/1.6) * self.scales[i]  # Радиус круга
                     grad = QRadialGradient(pos, rad)
@@ -620,11 +630,14 @@ class DiscoWindow(QWidget):
                     painter.setBrush(grad)
                     painter.setPen(Qt.NoPen)
                     painter.drawEllipse(pos, rad, rad)  # Рисуем круг
+
             elif self.cur_mode == "2. Кольца":  # Отрисовка Колец
                 limit = min(w, h) * 0.4  # Лимит размера
+
                 for i in range(3):  # Цикл по полосам
                     if self.colors[i] < SILENCE_THRESHOLD:
                         continue  # Пропуск тишины
+
                     center_rad = limit * (0.2 + i * 0.25) * self.scales[i]  # Радиус кольца
                     thickness = (35 + self.explosion * 60) * (min(w,h)/800) * self.scales[i]  # Толщина
                     total_r = center_rad + thickness  # Итоговый радиус
@@ -634,10 +647,14 @@ class DiscoWindow(QWidget):
                     grad.setColorAt(center_rad / total_r, QColor(*c)); grad.setColorAt(1.0, Qt.black)  # Светящийся ободок
                     painter.setBrush(grad); painter.setPen(Qt.NoPen)
                     painter.drawEllipse(QPointF(cx, cy), total_r, total_r)  # Рисуем кольцо
+
             elif self.cur_mode == "3. Спектр":  # Отрисовка Спектра
                 bw = w / 3  # Ширина колонки
+
                 for i in range(3):  # Для каждой полосы
-                    if self.colors[i] < SILENCE_THRESHOLD: continue  # Пропуск тишины
+                    if self.colors[i] < SILENCE_THRESHOLD:
+                        continue  # Пропуск тишины
+
                     bh, glow_w = (h * 0.95) * self.scales[i], bw * 1.5  # Высота и ширина сияния
                     center_x = i * bw + bw / 2  # Центр колонки
                     grad = QRadialGradient(QPointF(center_x, h), glow_w)
@@ -650,11 +667,14 @@ class DiscoWindow(QWidget):
                     painter.setBrush(grad)
                     painter.setPen(Qt.NoPen)
                     painter.drawEllipse(QPointF(center_x, h), glow_w, bh)  # Рисуем столб
+
             elif self.cur_mode == "4. Частицы":  # Отрисовка Частиц
                 orb = min(w, h) / 4.0 + (self.explosion * (min(w,h)/10))  # Орбита частиц
+
                 for i in range(3):  # По трем цветам
                     if self.colors[i] < SILENCE_THRESHOLD:
                         continue  # Пропуск тишины
+
                     ang = self.angle + (i * 2.09)
                     pos = QPointF(cx + orb * math.cos(ang), cy + orb * math.sin(ang))  # Позиция
                     part_rad = (min(w, h) / 3.5) * self.scales[i]  # Радиус сияния
@@ -665,6 +685,7 @@ class DiscoWindow(QWidget):
                     painter.setBrush(grad)
                     painter.setPen(Qt.NoPen)
                     painter.drawEllipse(pos, part_rad, part_rad)  # Рисуем пятно
+
             elif self.cur_mode == "5. Солнце":  # Отрисовка Солнца
                 rad = (min(w,h)/2.6) * max(self.scales) + (self.explosion*80)  # Радиус от общего звука
                 grad = QRadialGradient(QPointF(cx, cy), rad)
@@ -673,6 +694,7 @@ class DiscoWindow(QWidget):
                 painter.setBrush(grad)
                 painter.setPen(Qt.NoPen)
                 painter.drawEllipse(QPointF(cx, cy), rad, rad)  # Рисуем центр
+
             elif self.cur_mode == "6. Снег":  # Отрисовка Снега
                 for f in self.snow_flakes:  # Цикл по снежинкам
                     i = f[2]; pos = QPointF(f[0]*w, f[1]*h); rad = (8 + self.scales[i] * 15) * (min(w,h)/800)  # Координаты и размер
@@ -683,12 +705,14 @@ class DiscoWindow(QWidget):
                     painter.setBrush(grad)
                     painter.setPen(Qt.NoPen)
                     painter.drawEllipse(pos, rad, rad)  # Рисуем снежинку
+
             elif self.cur_mode == "7. Тоннель":  # Отрисовка Тоннеля
                 for n in range(12):  # 12 слоев квадратов
                     size_mod = (n + (self.tunnel_phase % 1.0)) / 12.0  # Модификатор размера
                     side = (max(w, h) * 1.2) * size_mod + (self.explosion * 150 * size_mod)  # Сторона квадрата
                     if side < 10:
                         continue  # Пропуск слишком маленьких
+
                     rect = QRectF(cx - side/2, cy - side/2, side, side)
                     opacity = int(255 * (1.0 - size_mod))  # Геометрия и прозрачность
                     painter.save()
@@ -699,12 +723,15 @@ class DiscoWindow(QWidget):
                     painter.setBrush(Qt.NoBrush)
                     painter.drawRect(rect)
                     painter.restore()  # Рисуем квадрат
+
             elif self.cur_mode == "8. Спираль":  # Отрисовка Спирали
                 max_r = max(w, h) * 0.7  # Максимальный радиус спирали
+
                 for i in range(60):  # 60 точек в спирали
                     norm = i / 60.0; a = self.angle * 3 + i * 0.4
                     r_spiral = (norm * max_r * self.scales[i%3]) + (self.explosion * 40)  # Геометрия спирали
-                    pos = QPointF(cx + r_spiral * math.cos(a), cy + r_spiral * math.sin(a)); rad = (10 + norm * 40) * self.scales[i%3]  # Позиция и радиус
+                    pos = QPointF(cx + r_spiral * math.cos(a), cy + r_spiral * math.sin(a))
+                    rad = (10 + norm * 40) * self.scales[i%3]  # Позиция и радиус
                     grad = QRadialGradient(pos, rad)
                     c = [0,0,0]
                     c[i%3] = self.colors[i%3]  # Градиент точки
@@ -713,22 +740,29 @@ class DiscoWindow(QWidget):
                     painter.setBrush(grad)
                     painter.setPen(Qt.NoPen)
                     painter.drawEllipse(pos, rad, rad)  # Рисуем точку спирали
+
             elif self.cur_mode == "9. Струны":  # Отрисовка Струн
                 painter.setBrush(Qt.NoBrush)  # Отключаем заливку
+
                 for i in range(35):  # 35 вибрирующих линий
                     idx = i % 3; alpha = int(self.colors[idx] * (1.0 - abs(i-17)/17))  # Индекс полосы и прозрачность
                     c = [0,0,0]; c[idx] = self.colors[idx]
                     painter.setPen(QPen(QColor(*c, alpha), 1))  # Цвет линии
                     path = QPainterPath(); y_base = h * (i / 35.0)
                     path.moveTo(0, y_base)  # Начало линии
+
                     for x in range(0, int(w) + 30, 30):  # Цикл построения кривой
                         vib = math.sin(x * 0.008 + self.angle * 4 + i) * (55 * self.scales[idx] * (self.colors[idx]/255))  # Сила вибрации
                         path.lineTo(x, y_base + vib)  # Точка кривой
                     painter.drawPath(path)  # Рисуем всю струну целиком
+
             elif self.cur_mode == "10. Океан":  # Отрисовка Океана
                 painter.setPen(Qt.NoPen)  # Отключаем обводку
+
                 for i in range(3):  # Для каждого частотного тумана
-                    if self.colors[i] < SILENCE_THRESHOLD: continue  # Пропуск тишины
+                    if self.colors[i] < SILENCE_THRESHOLD:
+                        continue  # Пропуск тишины
+
                     mist_pos = QPointF(w * (0.2 + i * 0.3), h * 1.1)
                     mist_rad = (w * 0.8) * self.scales[i]  # Позиция и радиус тумана
                     grad = QRadialGradient(mist_pos, mist_rad)
