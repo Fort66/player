@@ -1,0 +1,12 @@
+[project]
+name = "player"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "icecream>=2.1.10",
+    "numpy>=2.4.3",
+    "pyaudio>=0.2.14",
+    "pyside6>=6.10.2",
+]
